@@ -26,7 +26,10 @@ app.use((_req, res) => {
 // Central error handler
 app.use((err, _req, res, _next) => {
   console.error(err);
-  if (err.name === 'ValidationError' || err.name === 'CastError') {
+  if (err.name === 'CastError') {
+    return res.status(400).json({ message: 'Invalid id format' });
+  }
+  if (err.name === 'ValidationError') {
     return res.status(400).json({ message: err.message });
   }
   res.status(500).json({ message: 'Internal server error' });
