@@ -14,6 +14,19 @@ router.post('/', async (req, res, next) => {
         .status(400)
         .json({ message: 'opportunityId, name, email and phone are required' });
     }
+    if (name.trim().length < 2 || name.length > 100) {
+      return res.status(400).json({ message: 'Name must be 2-100 characters' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+    if (!/^[+\d][\d\s-]{6,14}$/.test(phone.trim())) {
+      return res.status(400).json({ message: 'Please provide a valid phone number' });
+    }
+    if (coverNote && coverNote.length > 2000) {
+      return res.status(400).json({ message: 'Cover note must be under 2000 characters' });
+    }
+
     const opportunity = await Opportunity.findById(opportunityId);
     if (!opportunity) return res.status(404).json({ message: 'Opportunity not found' });
 

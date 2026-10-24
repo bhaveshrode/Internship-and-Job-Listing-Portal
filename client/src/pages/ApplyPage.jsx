@@ -15,6 +15,16 @@ export default function ApplyPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setStatus('error');
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (!/^[+\d][\d\s-]{6,14}$/.test(form.phone.trim())) {
+      setStatus('error');
+      setError('Please enter a valid phone number');
+      return;
+    }
     setStatus('submitting');
     setError('');
     try {
@@ -57,6 +67,8 @@ export default function ApplyPage() {
             name="name"
             value={form.name}
             onChange={handleChange}
+            minLength={2}
+            maxLength={100}
             required
           />
         </label>
