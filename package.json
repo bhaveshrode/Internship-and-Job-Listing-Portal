@@ -1,0 +1,21 @@
+{
+  "name": "job-portal",
+  "private": true,
+  "type": "module",
+  "description": "Internship & Job Listing Portal — client/ (React) + server/ (Express) + api/ (Vercel entry)",
+  "scripts": {
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install",
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "start": "node server/src/index.js",
+    "seed": "npm --prefix server run seed",
+    "verify:deploy": "node scripts/verify-deploy.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5"
+  }
+}

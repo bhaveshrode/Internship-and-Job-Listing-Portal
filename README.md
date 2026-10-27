@@ -61,7 +61,21 @@ npm run dev            # starts http://localhost:5173
 
 | Variable | Description |
 |---|---|
-| `VITE_API_URL` | Backend API base URL |
+| `VITE_API_URL` | Backend API base URL (baked in at build time; default `/api` = same-origin) |
+
+## Deployment
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the full production guide: Vercel
+(single project, recommended), a persistent Node host (Render-style), the
+split-frontend/API option, the environment-variable reference, and the
+production checklist.
+
+Before deploying, run the local pre-deploy test suite:
+
+```bash
+npm run verify:deploy   # 16 checks: static build, SPA fallback, API, CORS,
+                        # admin JWT login, error handling — against Atlas
+```
 
 ## REST API
 

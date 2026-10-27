@@ -1,4 +1,7 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Same-origin by default: works with the Vite dev proxy and when Express
+// serves the built frontend. Split-origin deploys must set VITE_API_URL at
+// build time (full backend URL, e.g. https://api.example.com/api).
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const TOKEN_KEY = 'adminToken';
 
 async function request(path, options = {}) {
