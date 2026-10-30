@@ -1,0 +1,30 @@
+# Netlify configuration — static Vite frontend + Express API as a function.
+# Recipe follows Netlify's official Express setup guide:
+# https://docs.netlify.com/build/frameworks/framework-setup-guides/express/
+
+[build]
+  # Root script: installs client deps and builds the SPA to client/dist
+  command = "npm run build"
+  publish = "client/dist"
+
+[functions]
+  node_bundler = "esbuild"
+  # Keep the heavy native-ish deps out of the esbuild bundle; they are zipped
+  # from node_modules (installed by the default root `npm install`) instead.
+  external_node_modules = ["express", "mongoose"]
+
+# API → Express function. force=true so no static file can shadow /api/*
+# (must come BEFORE the SPA fallback — rules are read top to bottom).
+[[redirects]]
+  force = true
+  from = "/api/*"
+  status = 200
+  to = "/.netlify/functions/api/:splat"
+
+# SPA fallback (last rule): non-file paths get index.html so React Router
+# deep links (/admin, /opportunities/:id) survive refresh. Static files win
+# over this non-forced rule automatically ("shadowing").
+[[redirects]]
+  from = "/*"
+  status = 200
+  to = "/index.html"

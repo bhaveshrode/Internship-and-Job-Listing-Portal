@@ -142,6 +142,83 @@ try {
   s2.close();
 }
 
+// ---------- C) Netlify function entry (simulated Netlify events) ----------
+const { handler: netlifyHandler } = await import('../netlify/functions/api.mjs');
+
+function nlEvent(path, { method = 'GET', query = null, headers = {}, body = null, base64 = false } = {}) {
+  return {
+    path,
+    httpMethod: method,
+    headers: { 'User-Agent': 'verify-deploy', ...headers },
+    queryStringParameters: query,
+    body,
+    isBase64Encoded: base64,
+  };
+}
+
+async function callNetlify(event) {
+  try {
+    const res = await netlifyHandler(event, { awsRequestId: 'verify' });
+    return { status: res.statusCode, headers: res.headers || {}, body: res.body || '' };
+  } catch (e) {
+    return { status: 0, headers: {}, body: String(e) };
+  }
+}
+
+try {
+  const c1 = await callNetlify(nlEvent('/api/health'));
+  check('C1 netlify: GET /api/health 200 (original path form)', c1.status === 200 && c1.body.includes('"ok"'), `got ${c1.status} ${c1.body.slice(0, 60)}`);
+
+  const c2 = await callNetlify(nlEvent('/.netlify/functions/api/health'));
+  check('C2 netlify: health 200 (rewrite-destination path form)', c2.status === 200 && c2.body.includes('"ok"'), `got ${c2.status} ${c2.body.slice(0, 60)}`);
+
+  const c3 = await callNetlify(nlEvent('/api/opportunities', { query: { page: '1', limit: '50' } }));
+  let d3 = {};
+  try { d3 = JSON.parse(c3.body); } catch {}
+  check('C3 netlify: listing with query string (page/limit)', c3.status === 200 && d3.items?.length === 5, `got ${c3.status}, items ${d3.items?.length ?? 'n/a'}`);
+
+  const c4 = await callNetlify(nlEvent('/api/opportunities', { query: { domain: 'Design', page: '1', limit: '50' } }));
+  let d4 = {};
+  try { d4 = JSON.parse(c4.body); } catch {}
+  check('C4 netlify: domain filter via query', c4.status === 200 && d4.items?.length === 1 && d4.items[0].domain === 'Design', `got ${c4.status}, items ${d4.items?.length ?? 'n/a'}`);
+
+  const c5 = await callNetlify(nlEvent('/api/opportunities', { query: { search: 'Frontend', page: '1', limit: '50' } }));
+  let d5 = {};
+  try { d5 = JSON.parse(c5.body); } catch {}
+  check('C5 netlify: search via query', c5.status === 200 && d5.items?.length === 1 && /frontend/i.test(d5.items[0].title), `got ${c5.status}, items ${d5.items?.length ?? 'n/a'}`);
+
+  const loginBody = JSON.stringify({ username: process.env.ADMIN_USERNAME, password: process.env.ADMIN_PASSWORD });
+  const c6 = await callNetlify(nlEvent('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: loginBody }));
+  let d6 = {};
+  try { d6 = JSON.parse(c6.body); } catch {}
+  check('C6 netlify: admin login returns JWT (JSON body)', c6.status === 200 && Boolean(d6.token), `got ${c6.status}`);
+
+  const c7 = await callNetlify(nlEvent('/.netlify/functions/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: Buffer.from(loginBody).toString('base64'),
+    base64: true,
+  }));
+  let d7 = {};
+  try { d7 = JSON.parse(c7.body); } catch {}
+  check('C7 netlify: login with base64 body + destination path', c7.status === 200 && Boolean(d7.token), `got ${c7.status} ${c7.body.slice(0, 80)}`);
+
+  const c8 = await callNetlify(nlEvent('/api/opportunities/not-an-id'));
+  check('C8 netlify: bad id -> 400', c8.status === 400, `got ${c8.status}`);
+
+  const c9 = await callNetlify(nlEvent('/api/nope'));
+  check('C9 netlify: unknown route -> 404 JSON', c9.status === 404, `got ${c9.status}`);
+
+  const c10 = await callNetlify(nlEvent('/api/applications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: '' }),
+  }));
+  check('C10 netlify: invalid application -> 400 (no write)', c10.status === 400, `got ${c10.status} ${c10.body.slice(0, 80)}`);
+} finally {
+  // no server handle to close — the function runs in-process
+}
+
 // ---------- report ----------
 let fails = 0;
 for (const [st, name, extra] of results) {

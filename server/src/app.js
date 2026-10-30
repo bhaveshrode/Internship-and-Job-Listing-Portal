@@ -48,16 +48,16 @@ app.use('/api/admin', authRouter);
 
 // In production, serve the built React app from this server when available
 // (single-origin deployment: API + frontend on one host, no CORS needed).
-// On Vercel the CDN serves client/dist itself, so skip it there (process.env.VERCEL
-// is set by the platform) — static requests never reach this function anyway.
-const onVercel = Boolean(process.env.VERCEL);
+// On Vercel/Netlify the platform's CDN serves client/dist itself, so skip it
+// there — static requests never reach the API function anyway.
+const onServerlessHost = Boolean(process.env.VERCEL || process.env.NETLIFY);
 const distDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../client/dist'
 );
 if (
   process.env.NODE_ENV === 'production' &&
-  !onVercel &&
+  !onServerlessHost &&
   fs.existsSync(path.join(distDir, 'index.html'))
 ) {
   app.use(express.static(distDir));
@@ -69,7 +69,7 @@ if (
     }
     next();
   });
-} else if (process.env.NODE_ENV === 'production' && !onVercel) {
+} else if (process.env.NODE_ENV === 'production' && !onServerlessHost) {
   console.warn('client/dist not found — run `npm run build` in client/ to serve the frontend from this server.');
 }
 
