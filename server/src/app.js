@@ -11,8 +11,18 @@ import authRouter from './routes/auth.js';
 
 // Load server/.env relative to this file so startup works regardless of the
 // process working directory (platform deploys, serverless entries, scripts).
-const serverEnv = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
-dotenv.config({ path: serverEnv });
+// Netlify bundles functions as CommonJS where `import.meta` is empty, so the
+// resolution must be guarded — on serverless hosts env vars come from the
+// platform's encrypted store anyway (and server/.env isn't in the bundle).
+function resolveLocal(relPath) {
+  try {
+    return path.resolve(path.dirname(fileURLToPath(import.meta.url)), relPath);
+  } catch {
+    return null;
+  }
+}
+const serverEnv = resolveLocal('../.env');
+if (serverEnv) dotenv.config({ path: serverEnv });
 
 const app = express();
 
@@ -51,13 +61,11 @@ app.use('/api/admin', authRouter);
 // On Vercel/Netlify the platform's CDN serves client/dist itself, so skip it
 // there — static requests never reach the API function anyway.
 const onServerlessHost = Boolean(process.env.VERCEL || process.env.NETLIFY);
-const distDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '../../client/dist'
-);
+const distDir = resolveLocal('../../client/dist');
 if (
   process.env.NODE_ENV === 'production' &&
   !onServerlessHost &&
+  distDir &&
   fs.existsSync(path.join(distDir, 'index.html'))
 ) {
   app.use(express.static(distDir));
